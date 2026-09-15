@@ -1,0 +1,26 @@
+server:
+  port: 8081
+
+spring:
+  datasource:
+    url: jdbc:h2:mem:parksmartdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: 
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+
+app:
+  jwt:
+    secret: ParkSmartAI2026SuperSecretKeyForJWTTokenGenerationMustBe256Bits!!
+    expiration-ms: 86400000
+
+ml-service:
+  url: http://127.0.0.1:5001

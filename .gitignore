@@ -1,0 +1,39 @@
+# Java
+*.class
+*.jar
+*.war
+target/
+
+# Maven
+.mvn/
+mvnw
+mvnw.cmd
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.settings/
+.project
+.classpath
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+venv/
+.env
+*.pkl
+
+# Node
+node_modules/
+dist/
+build/
+.env.local
+
+# Logs
+*.log
