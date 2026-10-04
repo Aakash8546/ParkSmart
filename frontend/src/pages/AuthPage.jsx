@@ -1,16 +1,49 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, User, Phone } from 'lucide-react';
 import authParkingImg from '../assets/auth_parking.png';
+import { authService } from '../services/authService';
 
 export const AuthPage = () => {
   const [isRegister, setIsRegister] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+
+  // Form state
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [phone, setPhone] = useState('');
+
+  const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+
   const navigate = useNavigate();
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    navigate('/dashboard');
+    setLoading(true);
+    setErrorMessage('');
+
+    try {
+      let res;
+      if (isRegister) {
+        // Call /api/auth/register API
+        res = await authService.register(name, email, password, phone);
+      } else {
+        // Call /api/auth/login API (User & Admin)
+        res = await authService.login(email, password);
+      }
+
+      if (res && res.success) {
+        navigate('/dashboard');
+      } else {
+        setErrorMessage(res?.message || 'Authentication failed. Please check your credentials.');
+      }
+    } catch (err) {
+      setErrorMessage('Something went wrong. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -53,7 +86,30 @@ export const AuthPage = () => {
               {isRegister ? 'Create Account' : 'Welcome Back'}
             </h2>
 
+            {errorMessage && (
+              <div className="mb-4 p-2.5 rounded-xl bg-rose-500/20 border border-rose-500/40 text-rose-300 text-xs text-center">
+                {errorMessage}
+              </div>
+            )}
+
             <form onSubmit={handleSubmit} className="space-y-4">
+              {isRegister && (
+                <div>
+                  <label className="block text-xs font-semibold text-slate-400 mb-1.5">Full Name</label>
+                  <div className="relative">
+                    <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                    <input
+                      type="text"
+                      required
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      placeholder="Enter full name"
+                      className="w-full bg-[#1b253b]/80 border border-slate-700/80 rounded-xl pl-10 pr-4 py-2.5 text-xs text-slate-200 placeholder-slate-500 outline-none focus:border-blue-500 transition-all"
+                    />
+                  </div>
+                </div>
+              )}
+
               <div>
                 <label className="block text-xs font-semibold text-slate-400 mb-1.5">Email</label>
                 <div className="relative">
@@ -61,11 +117,30 @@ export const AuthPage = () => {
                   <input
                     type="email"
                     required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
                     placeholder="Enter email"
                     className="w-full bg-[#1b253b]/80 border border-slate-700/80 rounded-xl pl-10 pr-4 py-2.5 text-xs text-slate-200 placeholder-slate-500 outline-none focus:border-blue-500 transition-all"
                   />
                 </div>
               </div>
+
+              {isRegister && (
+                <div>
+                  <label className="block text-xs font-semibold text-slate-400 mb-1.5">Phone Number</label>
+                  <div className="relative">
+                    <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                    <input
+                      type="tel"
+                      required
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      placeholder="Enter phone number"
+                      className="w-full bg-[#1b253b]/80 border border-slate-700/80 rounded-xl pl-10 pr-4 py-2.5 text-xs text-slate-200 placeholder-slate-500 outline-none focus:border-blue-500 transition-all"
+                    />
+                  </div>
+                </div>
+              )}
 
               <div>
                 <label className="block text-xs font-semibold text-slate-400 mb-1.5">Password</label>
@@ -74,6 +149,8 @@ export const AuthPage = () => {
                   <input
                     type={showPassword ? 'text' : 'password'}
                     required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
                     placeholder="Enter password"
                     className="w-full bg-[#1b253b]/80 border border-slate-700/80 rounded-xl pl-10 pr-10 py-2.5 text-xs text-slate-200 placeholder-slate-500 outline-none focus:border-blue-500 transition-all"
                   />
@@ -100,15 +177,19 @@ export const AuthPage = () => {
 
               <button
                 type="submit"
-                className="w-full py-3 rounded-full bg-blue-500 hover:bg-blue-600 text-white font-bold text-xs shadow-[0_0_25px_rgba(59,130,246,0.4)] transition-all mt-2"
+                disabled={loading}
+                className="w-full py-3 rounded-full bg-blue-500 hover:bg-blue-600 text-white font-bold text-xs shadow-[0_0_25px_rgba(59,130,246,0.4)] transition-all mt-2 disabled:opacity-70"
               >
-                {isRegister ? 'Register' : 'Sign In'}
+                {loading ? 'Authenticating...' : isRegister ? 'Register' : 'Sign In'}
               </button>
             </form>
 
             <div className="mt-4 text-center">
               <button
-                onClick={() => setIsRegister(!isRegister)}
+                onClick={() => {
+                  setIsRegister(!isRegister);
+                  setErrorMessage('');
+                }}
                 className="text-xs text-slate-400 hover:text-white transition-colors"
               >
                 {isRegister ? (
