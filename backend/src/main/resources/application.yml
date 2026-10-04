@@ -1,0 +1,14 @@
+server:
+  port: 8081
+
+spring:
+  profiles:
+    active: dev
+
+app:
+  jwt:
+    secret: ParkSmartAI2026SuperSecretKeyForJWTTokenGenerationMustBe256Bits!!
+    expiration-ms: 86400000
+
+ml-service:
+  url: http://127.0.0.1:5001
