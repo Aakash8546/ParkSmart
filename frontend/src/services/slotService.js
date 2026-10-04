@@ -1,39 +1,19 @@
-const BASE_URL = 'http://localhost:5000/api';
-
-const getHeaders = () => {
-  const token = localStorage.getItem('token');
-  return {
-    'Content-Type': 'application/json',
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-  };
-};
+import { BASE_URL, getAuthHeaders, handleApiResponse } from './api';
 
 export const slotService = {
-  // 1. GET /api/slots - Get All Parking Slots
+  // 1. GET /api/slots - Fetch all parking slots from backend database
   getAllSlots: async () => {
-    try {
-      const response = await fetch(`${BASE_URL}/slots`, {
-        headers: getHeaders(),
-      });
-      const data = await response.json();
-      return data;
-    } catch (error) {
-      console.warn('Parking Slots API connection offline, using simulated slots feed:', error);
-      return null;
-    }
+    const response = await fetch(`${BASE_URL}/slots`, {
+      headers: getAuthHeaders(),
+    });
+    return await handleApiResponse(response);
   },
 
-  // 2. GET /api/slots/{id} - Get Slot Details By ID
+  // 2. GET /api/slots/{id} - Fetch single slot detail
   getSlotById: async (id) => {
-    try {
-      const response = await fetch(`${BASE_URL}/slots/${id}`, {
-        headers: getHeaders(),
-      });
-      const data = await response.json();
-      return data;
-    } catch (error) {
-      console.warn(`Slot ID ${id} API offline:`, error);
-      return null;
-    }
+    const response = await fetch(`${BASE_URL}/slots/${id}`, {
+      headers: getAuthHeaders(),
+    });
+    return await handleApiResponse(response);
   },
 };

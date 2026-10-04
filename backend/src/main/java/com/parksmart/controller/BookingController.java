@@ -3,6 +3,7 @@ package com.parksmart.controller;
 import com.parksmart.dto.request.BookingRequest;
 import com.parksmart.dto.response.ApiResponse;
 import com.parksmart.dto.response.BookingResponse;
+import com.parksmart.entity.Booking;
 import com.parksmart.service.BookingService;
 import com.parksmart.service.QrCodeService;
 import jakarta.validation.Valid;
@@ -39,6 +40,26 @@ public class BookingController {
     @PutMapping("/{id}/extend")
     public ResponseEntity<ApiResponse<BookingResponse>> extendBooking(@AuthenticationPrincipal UserDetails userDetails, @PathVariable Long id) {
         return ResponseEntity.ok(ApiResponse.success(bookingService.extendBooking(userDetails.getUsername(), id)));
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<ApiResponse<BookingResponse>> getBookingById(@PathVariable Long id) {
+        Booking booking = bookingService.getBookingById(id);
+        return ResponseEntity.ok(ApiResponse.success(
+            BookingResponse.builder()
+                .id(booking.getId())
+                .slotCode(booking.getSlot().getSlotCode())
+                .zone(booking.getSlot().getZone())
+                .plateNumber(booking.getVehicle().getPlateNumber())
+                .vehicleType(booking.getVehicle().getVehicleType().name())
+                .startTime(booking.getStartTime())
+                .endTime(booking.getEndTime())
+                .totalPrice(booking.getTotalPrice())
+                .status(booking.getStatus().name())
+                .qrCodeData(booking.getQrCodeData())
+                .createdAt(booking.getCreatedAt())
+                .build()
+        ));
     }
 
     @GetMapping(value = "/{id}/qr", produces = MediaType.IMAGE_PNG_VALUE)

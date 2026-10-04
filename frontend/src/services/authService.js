@@ -1,84 +1,65 @@
-const BASE_URL = 'http://localhost:5000/api'; // Standard backend endpoint URL
+import { BASE_URL, getAuthHeaders, handleApiResponse } from './api';
 
 export const authService = {
-  // 1. User / Admin Login
+  // 1. User / Admin Login -> POST /api/auth/login
   login: async (email, password) => {
-    try {
-      const response = await fetch(`${BASE_URL}/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-      });
-      const data = await response.json();
-      if (data.success && data.data?.token) {
-        localStorage.setItem('token', data.data.token);
-        localStorage.setItem('user', JSON.stringify(data.data));
-      }
-      return data;
-    } catch (error) {
-      console.warn('API connection offline, using simulated auth response:', error);
-      // Fallback fallback simulated successful response matching API spec
-      const mockData = {
-        token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.mockToken',
-        role: email.includes('admin') ? 'ADMIN' : 'USER',
-        name: email.includes('admin') ? 'Admin User' : 'Aakash Srivastava',
-        email,
-      };
-      localStorage.setItem('token', mockData.token);
-      localStorage.setItem('user', JSON.stringify(mockData));
-      return { success: true, message: 'Login successful', data: mockData };
+    const response = await fetch(`${BASE_URL}/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    });
+    const data = await handleApiResponse(response);
+    if (data && data.success && data.data?.token) {
+      localStorage.setItem('token', data.data.token);
+      localStorage.setItem('user', JSON.stringify(data.data));
     }
+    return data;
   },
 
-  // 2. Register New User Account
+  // 2. Register New User Account -> POST /api/auth/register
   register: async (name, email, password, phone) => {
-    try {
-      const response = await fetch(`${BASE_URL}/auth/register`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, password, phone }),
-      });
-      const data = await response.json();
-      if (data.success && data.data?.token) {
-        localStorage.setItem('token', data.data.token);
-        localStorage.setItem('user', JSON.stringify(data.data));
-      }
-      return data;
-    } catch (error) {
-      console.warn('API connection offline, using simulated register response:', error);
-      const mockData = {
-        token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.mockToken',
-        role: 'USER',
-        name: name || 'Doc Test User',
-        email,
-      };
-      localStorage.setItem('token', mockData.token);
-      localStorage.setItem('user', JSON.stringify(mockData));
-      return { success: true, message: 'User registered successfully', data: mockData };
+    const response = await fetch(`${BASE_URL}/auth/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, email, password, phone }),
+    });
+    const data = await handleApiResponse(response);
+    if (data && data.success && data.data?.token) {
+      localStorage.setItem('token', data.data.token);
+      localStorage.setItem('user', JSON.stringify(data.data));
     }
+    return data;
   },
 
-  // 3. Get Current User Profile (/api/auth/me)
+  // 3. Get Current User Profile -> GET /api/auth/me
   getProfile: async () => {
     const token = localStorage.getItem('token');
     if (!token) return null;
+    const response = await fetch(`${BASE_URL}/auth/me`, {
+      headers: getAuthHeaders(),
+    });
+    const data = await handleApiResponse(response);
+    if (data?.success && data.data) {
+      localStorage.setItem('user', JSON.stringify(data.data));
+    }
+    return data;
+  },
+
+  getCurrentUser: () => {
     try {
-      const response = await fetch(`${BASE_URL}/auth/me`, {
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      return await response.json();
-    } catch (error) {
-      const stored = localStorage.getItem('user');
-      return stored ? { success: true, data: JSON.parse(stored) } : null;
+      const user = localStorage.getItem('user');
+      return user ? JSON.parse(user) : null;
+    } catch {
+      return null;
     }
   },
 
-  // Logout helper
+  isAuthenticated: () => {
+    return !!localStorage.getItem('token');
+  },
+
   logout: () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
-  }
+  },
 };
