@@ -25,6 +25,6 @@ done
 export ML_SERVICE_URL="http://127.0.0.1:5001"
 export PORT="${PORT:-8080}"
 
-echo "Starting Spring Boot Backend on port $PORT..."
+echo "Starting Spring Boot Backend on port $PORT (Memory Capped at 256MB)..."
 cd /app
-exec java -jar /app/backend.jar --spring.profiles.active=prod
+exec java -Xmx256m -Xms128m -jar /app/backend.jar --spring.profiles.active=prod
