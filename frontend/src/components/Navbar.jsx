@@ -53,6 +53,7 @@ export const Navbar = ({ onSearchChange, showSearch = false }) => {
             </div>
           </>
         ) : (
+<<<<<<< HEAD
           <div className="flex items-center gap-4">
             <button className="relative p-2 rounded-xl bg-slate-800/60 border border-slate-700/50 text-slate-300 hover:text-white hover:bg-slate-700/50 transition-all">
               <Bell className="w-5 h-5" />
@@ -62,6 +63,31 @@ export const Navbar = ({ onSearchChange, showSearch = false }) => {
               <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-500 to-purple-500 p-[2px]">
                 <div className="w-full h-full bg-slate-900 rounded-[10px] flex items-center justify-center">
                   <User className="w-4 h-4 text-slate-200" />
+=======
+          <div className="flex items-center gap-3">
+            <Link
+              to="/vehicles/add"
+              className="text-xs font-semibold px-3 py-1.5 rounded-lg border border-blue-500/40 bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 transition-all flex items-center gap-1.5"
+            >
+              <span>+ Add Vehicle (AI OCR)</span>
+            </Link>
+
+            <Link
+              to="/dashboard"
+              className={`text-xs font-medium px-3 py-1.5 rounded-lg border transition-all ${
+                isDashboard
+                  ? 'bg-blue-600/30 border-blue-500 text-blue-400'
+                  : 'border-slate-700 text-slate-300 hover:bg-slate-800'
+              }`}
+            >
+              Grid
+            </Link>
+
+            <div className="flex items-center gap-3 pl-3 border-l border-slate-800">
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-blue-500 to-indigo-500 p-[1.5px]">
+                <div className="w-full h-full bg-slate-900 rounded-[7px] flex items-center justify-center">
+                  <User className="w-4 h-4 text-blue-400" />
+>>>>>>> 8a7182172eb516ef4dff06cfa67d94b21b697222
                 </div>
               </div>
               <div className="hidden sm:block text-left">

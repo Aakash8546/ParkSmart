@@ -90,7 +90,7 @@ const AddVehicle = () => {
             <img
               src={selectedImage || "/assets/car.jpg"}
               alt="Vehicle"
-              className="h-[275px] w-full object-cover"
+              className="block h-auto w-full"
             />
 
             {/* Remove Button */}
