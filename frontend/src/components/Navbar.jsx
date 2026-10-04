@@ -65,7 +65,14 @@ export const Navbar = ({ onSearchChange, showSearch = false }) => {
             </div>
           </>
         ) : (
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
+            <Link
+              to="/vehicles/add"
+              className="text-xs font-semibold px-3 py-1.5 rounded-lg border border-blue-500/40 bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 transition-all flex items-center gap-1.5"
+            >
+              <span>+ Add Vehicle (AI OCR)</span>
+            </Link>
+
             <Link
               to="/dashboard"
               className={`text-xs font-medium px-3 py-1.5 rounded-lg border transition-all ${
@@ -74,7 +81,7 @@ export const Navbar = ({ onSearchChange, showSearch = false }) => {
                   : 'border-slate-700 text-slate-300 hover:bg-slate-800'
               }`}
             >
-              Dashboard
+              Grid
             </Link>
 
             <div className="flex items-center gap-3 pl-3 border-l border-slate-800">
