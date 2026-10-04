@@ -4,6 +4,9 @@ import { AuthPage } from './pages/AuthPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { BookingPassPage } from './pages/BookingPassPage';
 import { AddVehiclePage } from './pages/AddVehiclePage';
+import { MyBookingsPage } from './pages/MyBookingsPage';
+import { AdminDashboardPage } from './pages/AdminDashboardPage';
+import { GuardScanPage } from './pages/GuardScanPage';
 
 export function App() {
   return (
@@ -13,8 +16,11 @@ export function App() {
         <Route path="/login" element={<AuthPage />} />
         <Route path="/register" element={<AuthPage />} />
         <Route path="/dashboard" element={<DashboardPage />} />
-        <Route path="/vehicles/add" element={<AddVehiclePage />} />
         <Route path="/booking/:id/qr" element={<BookingPassPage />} />
+        <Route path="/vehicles/add" element={<AddVehiclePage />} />
+        <Route path="/bookings" element={<MyBookingsPage />} />
+        <Route path="/admin" element={<AdminDashboardPage />} />
+        <Route path="/guard/scan" element={<GuardScanPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
