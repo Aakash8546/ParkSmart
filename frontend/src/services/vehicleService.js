@@ -18,4 +18,18 @@ export const vehicleService = {
     });
     return await handleApiResponse(response);
   },
+
+  // 3. POST /api/vehicles/detect-plate - AI OCR License Plate Detection from Image
+  detectPlate: async (imageFile) => {
+    const formData = new FormData();
+    formData.append('image', imageFile);
+
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${BASE_URL}/vehicles/detect-plate`, {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: formData,
+    });
+    return await handleApiResponse(response);
+  },
 };
