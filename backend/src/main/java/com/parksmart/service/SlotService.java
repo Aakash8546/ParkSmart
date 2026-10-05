@@ -22,7 +22,9 @@ public class SlotService {
     private SimpMessagingTemplate messagingTemplate;
 
     public List<SlotResponse> getAllSlots() {
-        return parkingSlotRepository.findAll().stream().map(slot -> 
+        return parkingSlotRepository.findAll().stream()
+            .sorted((s1, s2) -> s1.getSlotCode().compareTo(s2.getSlotCode()))
+            .map(slot -> 
             SlotResponse.builder()
                 .id(slot.getId())
                 .slotCode(slot.getSlotCode())

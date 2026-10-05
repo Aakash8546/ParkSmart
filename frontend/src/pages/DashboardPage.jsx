@@ -201,7 +201,7 @@ export const DashboardPage = () => {
                     selectedVehicleType === 'all' ||
                     (s.vehicleType && s.vehicleType.toUpperCase() === selectedVehicleType.toUpperCase());
                   return matchesZone && matchesSearch && matchesType;
-                });
+                }).sort((a, b) => (a.slotCode || '').localeCompare(b.slotCode || '', undefined, { numeric: true }));
 
                 if (zoneSlots.length === 0) return null;
 
