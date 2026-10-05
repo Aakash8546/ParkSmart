@@ -125,7 +125,9 @@ export const AdminDashboardPage = () => {
           <div className="bg-[#131b2e]/90 border border-slate-800 rounded-2xl p-5 flex items-center justify-between">
             <div>
               <p className="text-xs font-semibold text-slate-400">Total Revenue</p>
-              <h3 className="text-2xl font-extrabold text-white font-mono mt-1">₹45,200</h3>
+              <h3 className="text-2xl font-extrabold text-white font-mono mt-1">
+                {stats?.totalRevenue != null ? `₹${stats.totalRevenue.toLocaleString()}` : '₹0'}
+              </h3>
             </div>
             <div className="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
               <ArrowUpRight className="w-5 h-5" />
@@ -135,7 +137,9 @@ export const AdminDashboardPage = () => {
           <div className="bg-[#131b2e]/90 border border-slate-800 rounded-2xl p-5 flex items-center justify-between">
             <div>
               <p className="text-xs font-semibold text-slate-400">Today's Bookings</p>
-              <h3 className="text-2xl font-extrabold text-white font-mono mt-1">34</h3>
+              <h3 className="text-2xl font-extrabold text-white font-mono mt-1">
+                {stats?.todaysBookings != null ? stats.todaysBookings : 0}
+              </h3>
             </div>
             <div className="w-10 h-10 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center">
               <Calendar className="w-5 h-5" />
@@ -145,7 +149,9 @@ export const AdminDashboardPage = () => {
           <div className="bg-[#131b2e]/90 border border-slate-800 rounded-2xl p-5 flex items-center justify-between">
             <div>
               <p className="text-xs font-semibold text-slate-400">Occupancy Rate</p>
-              <h3 className="text-2xl font-extrabold text-white font-mono mt-1">78%</h3>
+              <h3 className="text-2xl font-extrabold text-white font-mono mt-1">
+                {stats?.occupancyRate != null ? `${Math.round(stats.occupancyRate)}%` : '0%'}
+              </h3>
             </div>
             <div className="w-10 h-10 rounded-xl bg-cyan-500/20 text-cyan-400 flex items-center justify-center font-bold">
               <PieIcon className="w-5 h-5" />
@@ -155,7 +161,9 @@ export const AdminDashboardPage = () => {
           <div className="bg-[#131b2e]/90 border border-slate-800 rounded-2xl p-5 flex items-center justify-between">
             <div>
               <p className="text-xs font-semibold text-slate-400">Active Users</p>
-              <h3 className="text-2xl font-extrabold text-white font-mono mt-1">156</h3>
+              <h3 className="text-2xl font-extrabold text-white font-mono mt-1">
+                {stats?.activeUsers != null ? stats.activeUsers : 0}
+              </h3>
             </div>
             <div className="w-10 h-10 rounded-xl bg-purple-500/20 text-purple-400 flex items-center justify-center">
               <Users className="w-5 h-5" />
@@ -267,11 +275,11 @@ export const AdminDashboardPage = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800/60">
-                  {recentBookings.map((b, idx) => (
+                  {tableBookings.map((b, idx) => (
                     <tr key={idx} className="hover:bg-slate-800/30 transition-colors">
                       <td className="py-3 font-semibold text-white flex items-center gap-2">
                         <div className="w-6 h-6 rounded-full bg-slate-700 flex items-center justify-center text-[10px]">
-                          {b.user.charAt(0)}
+                          {(b.user || 'U').charAt(0)}
                         </div>
                         {b.user}
                       </td>
