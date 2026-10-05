@@ -1,24 +1,65 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Sparkles, Calendar, CheckCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { mlService } from '../services/mlService';
+
+const defaultHourlyPrediction = [
+  { time: '6 AM', demand: 'low', color: '#10b981', height: '35%' },
+  { time: '7 AM', demand: 'low', color: '#10b981', height: '45%' },
+  { time: '8 AM', demand: 'medium', color: '#f59e0b', height: '60%' },
+  { time: '9 AM', demand: 'high', color: '#f43f5e', height: '85%' },
+  { time: '10 AM', demand: 'high', color: '#f43f5e', height: '95%' },
+  { time: '12 PM', demand: 'medium', color: '#f59e0b', height: '70%' },
+  { time: '1 PM', demand: 'high', color: '#f43f5e', height: '55%' },
+  { time: '2 PM', demand: 'low', color: '#10b981', height: '80%' },
+  { time: '3 PM', demand: 'medium', color: '#f59e0b', height: '80%' },
+  { time: '5 PM', demand: 'high', color: '#f43f5e', height: '50%' },
+  { time: '6 PM', demand: 'high', color: '#f43f5e', height: '45%' },
+  { time: '7 PM', demand: 'medium', color: '#f59e0b', height: '65%' },
+  { time: '9 PM', demand: 'low', color: '#10b981', height: '50%' },
+  { time: '10 PM', demand: 'low', color: '#10b981', height: '40%' },
+];
 
 export const AiDemandPrediction = ({ onSelectBestTime }) => {
-  const hourlyPrediction = [
-    { time: '6 AM', demand: 'low', color: '#10b981', height: '35%' },
-    { time: '7 AM', demand: 'low', color: '#10b981', height: '45%' },
-    { time: '8 AM', demand: 'medium', color: '#f59e0b', height: '60%' },
-    { time: '9 AM', demand: 'high', color: '#f43f5e', height: '85%' },
-    { time: '10 AM', demand: 'high', color: '#f43f5e', height: '95%' },
-    { time: '12 PM', demand: 'medium', color: '#f59e0b', height: '70%' },
-    { time: '1 PM', demand: 'high', color: '#f43f5e', height: '55%' },
-    { time: '2 PM', demand: 'low', color: '#10b981', height: '80%' },
-    { time: '3 PM', demand: 'medium', color: '#f59e0b', height: '80%' },
-    { time: '5 PM', demand: 'high', color: '#f43f5e', height: '50%' },
-    { time: '6 PM', demand: 'high', color: '#f43f5e', height: '45%' },
-    { time: '7 PM', demand: 'medium', color: '#f59e0b', height: '65%' },
-    { time: '9 PM', demand: 'low', color: '#10b981', height: '50%' },
-    { time: '10 PM', demand: 'low', color: '#10b981', height: '40%' },
-  ];
+  const [hourlyPrediction, setHourlyPrediction] = useState(defaultHourlyPrediction);
+  const [bestWindow, setBestWindow] = useState('1PM-3PM');
+
+  useEffect(() => {
+    const fetchMlPredictions = async () => {
+      const res = await mlService.predictDemand();
+      if (res && Array.isArray(res.predictions) && res.predictions.length > 0) {
+        const formatted = res.predictions.map((p) => {
+          const dem = (p.predicted_demand || 'LOW').toLowerCase();
+          let color = '#10b981';
+          let height = '40%';
+
+          if (dem === 'medium') {
+            color = '#f59e0b';
+            height = '65%';
+          } else if (dem === 'high') {
+            color = '#f43f5e';
+            height = '90%';
+          }
+
+          return {
+            time: p.hour || '12:00',
+            demand: dem,
+            color,
+            height,
+          };
+        });
+
+        setHourlyPrediction(formatted);
+
+        const lowItem = res.predictions.find((p) => p.recommended || p.predicted_demand === 'LOW');
+        if (lowItem) {
+          setBestWindow(`${lowItem.hour}`);
+        }
+      }
+    };
+
+    fetchMlPredictions();
+  }, []);
 
   return (
     <div className="bg-[#131c31]/90 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl relative overflow-hidden space-y-6">

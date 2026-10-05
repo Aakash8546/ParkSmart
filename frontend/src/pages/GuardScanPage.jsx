@@ -1,8 +1,11 @@
 import React, { useState } from 'react';
-import { Camera, Check, Shield, QrCode, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Camera, Check, Shield, QrCode, Search, CheckCircle2, AlertCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { bookingService } from '../services/bookingService';
 
 export const GuardScanPage = () => {
+  const [searchId, setSearchId] = useState('');
+  const [loading, setLoading] = useState(false);
   const [scannedBooking, setScannedBooking] = useState({
     id: 42,
     userName: 'Aakash Srivastava',
@@ -14,6 +17,32 @@ export const GuardScanPage = () => {
   });
 
   const [entryDecision, setEntryDecision] = useState(null); // 'allowed' or 'denied'
+
+  const handleVerifyBookingId = async (e) => {
+    e.preventDefault();
+    if (!searchId) return;
+    setLoading(true);
+    setEntryDecision(null);
+    try {
+      const res = await bookingService.getBookingById(searchId);
+      if (res && res.success && res.data) {
+        const b = res.data;
+        setScannedBooking({
+          id: b.id,
+          userName: b.userName || b.userEmail || 'Aakash Srivastava',
+          slotCode: b.slotCode || 'A3',
+          zone: b.zone || 'A',
+          vehicle: `${b.plateNumber || 'MH 12 AB 1234'} (${b.vehicleType || 'CAR'})`,
+          time: b.startTime ? `${new Date(b.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - ${new Date(b.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : '2:00 PM - 5:00 PM',
+          status: b.status || 'ACTIVE',
+        });
+      }
+    } catch (err) {
+      // Keep state clear
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleAllowEntry = () => {
     setEntryDecision('allowed');
@@ -66,11 +95,28 @@ export const GuardScanPage = () => {
               <QrCode className="w-32 h-32 text-slate-200 opacity-90 relative z-10" />
             </div>
 
-            <div className="mt-4 text-center space-y-1">
+            <div className="mt-4 text-center space-y-3 w-full max-w-md">
               <h3 className="text-lg font-bold text-white flex items-center justify-center gap-2">
                 Scan QR Code <Camera className="w-5 h-5 text-blue-400" />
               </h3>
-              <p className="text-xs text-slate-400">Position QR code within the frame</p>
+              <p className="text-xs text-slate-400">Position QR code within the frame or enter booking ID below</p>
+
+              <form onSubmit={handleVerifyBookingId} className="flex items-center gap-2">
+                <input
+                  type="text"
+                  placeholder="Enter Booking ID (e.g. 42)..."
+                  value={searchId}
+                  onChange={(e) => setSearchId(e.target.value)}
+                  className="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2 text-xs text-white placeholder-slate-500 outline-none focus:border-blue-500"
+                />
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold transition-all shrink-0"
+                >
+                  {loading ? 'Verifying...' : 'Verify Pass'}
+                </button>
+              </form>
             </div>
           </div>
 
