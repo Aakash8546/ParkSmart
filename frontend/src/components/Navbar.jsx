@@ -1,12 +1,14 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Car, User, Bell, Search, LayoutDashboard, Shield, PlusCircle, Calendar, Sparkles } from 'lucide-react';
+import { Car, User, Search, LayoutDashboard, Shield, PlusCircle, Calendar, Sparkles } from 'lucide-react';
 import { authService } from '../services/authService';
 
 export const Navbar = ({ onSearchChange, showSearch = false }) => {
   const location = useLocation();
-  const isDashboard = location.pathname.includes('/dashboard');
   const user = authService.getCurrentUser();
+  const role = authService.getRole();
+  const isAdmin = role === 'ADMIN';
+  const isGuard = role === 'GUARD';
 
   return (
     <nav className="sticky top-0 z-40 bg-[#0f172a]/90 backdrop-blur-md border-b border-slate-800/80 px-6 py-3.5 flex items-center justify-between text-xs">
@@ -20,26 +22,40 @@ export const Navbar = ({ onSearchChange, showSearch = false }) => {
           </span>
         </Link>
 
-        {/* Global Nav Links */}
+        {/* Role-Based Nav Links */}
         <div className="hidden lg:flex items-center gap-4 text-slate-300 font-medium border-l border-slate-800 pl-6">
           <Link to="/dashboard" className="hover:text-blue-400 transition-colors flex items-center gap-1.5">
             <LayoutDashboard className="w-3.5 h-3.5" /> Dashboard
           </Link>
-          <Link to="/bookings" className="hover:text-blue-400 transition-colors flex items-center gap-1.5">
-            <Calendar className="w-3.5 h-3.5" /> My Bookings
-          </Link>
-          <Link to="/vehicles/add" className="hover:text-blue-400 transition-colors flex items-center gap-1.5">
-            <PlusCircle className="w-3.5 h-3.5" /> Add Vehicle (ML)
-          </Link>
-          <Link to="/demand-prediction" className="hover:text-cyan-400 transition-colors flex items-center gap-1.5 text-cyan-300">
-            <Sparkles className="w-3.5 h-3.5 text-cyan-400" /> AI Forecast
-          </Link>
-          <Link to="/admin" className="hover:text-purple-400 transition-colors flex items-center gap-1.5 text-purple-300">
-            <Shield className="w-3.5 h-3.5 text-purple-400" /> Admin
-          </Link>
-          <Link to="/guard/scan" className="hover:text-emerald-400 transition-colors flex items-center gap-1.5 text-emerald-300">
-            Guard Scanner
-          </Link>
+
+          {/* User & Admin Links */}
+          {!isGuard && (
+            <>
+              <Link to="/bookings" className="hover:text-blue-400 transition-colors flex items-center gap-1.5">
+                <Calendar className="w-3.5 h-3.5" /> My Bookings
+              </Link>
+              <Link to="/vehicles/add" className="hover:text-blue-400 transition-colors flex items-center gap-1.5">
+                <PlusCircle className="w-3.5 h-3.5" /> Add Vehicle (ML)
+              </Link>
+              <Link to="/demand-prediction" className="hover:text-cyan-400 transition-colors flex items-center gap-1.5 text-cyan-300">
+                <Sparkles className="w-3.5 h-3.5 text-cyan-400" /> AI Forecast
+              </Link>
+            </>
+          )}
+
+          {/* Admin Exclusive Link */}
+          {isAdmin && (
+            <Link to="/admin" className="hover:text-purple-400 transition-colors flex items-center gap-1.5 text-purple-300 font-bold">
+              <Shield className="w-3.5 h-3.5 text-purple-400" /> Admin
+            </Link>
+          )}
+
+          {/* Guard & Admin Link */}
+          {(isGuard || isAdmin) && (
+            <Link to="/guard/scan" className="hover:text-emerald-400 transition-colors flex items-center gap-1.5 text-emerald-300 font-bold">
+              <Shield className="w-3.5 h-3.5 text-emerald-400" /> Guard Scanner
+            </Link>
+          )}
         </div>
       </div>
 
@@ -59,7 +75,16 @@ export const Navbar = ({ onSearchChange, showSearch = false }) => {
         {user ? (
           <div className="flex items-center gap-3">
             <div className="text-right hidden sm:block">
-              <p className="text-xs font-bold text-white">{user.name || 'Doc Test User'}</p>
+              <div className="flex items-center justify-end gap-1.5">
+                <p className="text-xs font-bold text-white">{user.name || 'User'}</p>
+                <span className={`text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded border ${
+                  isAdmin ? 'bg-purple-500/20 text-purple-300 border-purple-500/40' :
+                  isGuard ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' :
+                  'bg-blue-500/20 text-blue-300 border-blue-500/40'
+                }`}>
+                  {role}
+                </span>
+              </div>
               <p className="text-[10px] text-slate-400">{user.email || 'user@parksmart.com'}</p>
             </div>
             <button

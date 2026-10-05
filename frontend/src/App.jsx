@@ -8,6 +8,7 @@ import { MyBookingsPage } from './pages/MyBookingsPage';
 import { AdminDashboardPage } from './pages/AdminDashboardPage';
 import { GuardScanPage } from './pages/GuardScanPage';
 import { DemandPredictionPage } from './pages/DemandPredictionPage';
+import { ProtectedRoute } from './components/ProtectedRoute';
 
 export function App() {
   return (
@@ -20,8 +21,27 @@ export function App() {
         <Route path="/booking/:id/qr" element={<BookingPassPage />} />
         <Route path="/vehicles/add" element={<AddVehiclePage />} />
         <Route path="/bookings" element={<MyBookingsPage />} />
-        <Route path="/admin" element={<AdminDashboardPage />} />
-        <Route path="/guard/scan" element={<GuardScanPage />} />
+        
+        {/* Admin Restricted Route (RBAC) */}
+        <Route
+          path="/admin"
+          element={
+            <ProtectedRoute allowedRoles={['ADMIN']}>
+              <AdminDashboardPage />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Guard & Admin Restricted Route (RBAC) */}
+        <Route
+          path="/guard/scan"
+          element={
+            <ProtectedRoute allowedRoles={['GUARD', 'ADMIN']}>
+              <GuardScanPage />
+            </ProtectedRoute>
+          }
+        />
+
         <Route path="/demand-prediction" element={<DemandPredictionPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

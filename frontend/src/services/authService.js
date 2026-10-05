@@ -1,7 +1,7 @@
 import { BASE_URL, getAuthHeaders, handleApiResponse } from './api';
 
 export const authService = {
-  // 1. User / Admin Login -> POST /api/auth/login
+  // 1. User / Admin / Guard Login -> POST /api/auth/login
   login: async (email, password) => {
     const response = await fetch(`${BASE_URL}/auth/login`, {
       method: 'POST',
@@ -17,11 +17,11 @@ export const authService = {
   },
 
   // 2. Register New User Account -> POST /api/auth/register
-  register: async (name, email, password, phone) => {
+  register: async (name, email, password, phone, role = 'USER') => {
     const response = await fetch(`${BASE_URL}/auth/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, email, password, phone }),
+      body: JSON.stringify({ name, email, password, phone, role }),
     });
     const data = await handleApiResponse(response);
     if (data && data.success && data.data?.token) {
@@ -52,6 +52,25 @@ export const authService = {
     } catch {
       return null;
     }
+  },
+
+  getRole: () => {
+    try {
+      const userStr = localStorage.getItem('user');
+      if (!userStr) return 'USER';
+      const user = JSON.parse(userStr);
+      return (user.role || user.userRole || 'USER').toUpperCase();
+    } catch {
+      return 'USER';
+    }
+  },
+
+  isAdmin: () => {
+    return authService.getRole() === 'ADMIN';
+  },
+
+  isGuard: () => {
+    return authService.getRole() === 'GUARD';
   },
 
   isAuthenticated: () => {
