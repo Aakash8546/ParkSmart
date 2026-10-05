@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Car, User, Bell, Search, LayoutDashboard, Shield, PlusCircle, Calendar } from 'lucide-react';
+import { Car, User, Bell, Search, LayoutDashboard, Shield, PlusCircle, Calendar, Sparkles } from 'lucide-react';
 import { authService } from '../services/authService';
 
 export const Navbar = ({ onSearchChange, showSearch = false }) => {
@@ -31,8 +31,11 @@ export const Navbar = ({ onSearchChange, showSearch = false }) => {
           <Link to="/vehicles/add" className="hover:text-blue-400 transition-colors flex items-center gap-1.5">
             <PlusCircle className="w-3.5 h-3.5" /> Add Vehicle (ML)
           </Link>
+          <Link to="/demand-prediction" className="hover:text-cyan-400 transition-colors flex items-center gap-1.5 text-cyan-300">
+            <Sparkles className="w-3.5 h-3.5 text-cyan-400" /> AI Forecast
+          </Link>
           <Link to="/admin" className="hover:text-purple-400 transition-colors flex items-center gap-1.5 text-purple-300">
-            <Shield className="w-3.5 h-3.5 text-purple-400" /> Admin Dashboard
+            <Shield className="w-3.5 h-3.5 text-purple-400" /> Admin
           </Link>
           <Link to="/guard/scan" className="hover:text-emerald-400 transition-colors flex items-center gap-1.5 text-emerald-300">
             Guard Scanner

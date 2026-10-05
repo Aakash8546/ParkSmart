@@ -7,6 +7,7 @@ import { AddVehiclePage } from './pages/AddVehiclePage';
 import { MyBookingsPage } from './pages/MyBookingsPage';
 import { AdminDashboardPage } from './pages/AdminDashboardPage';
 import { GuardScanPage } from './pages/GuardScanPage';
+import { DemandPredictionPage } from './pages/DemandPredictionPage';
 
 export function App() {
   return (
@@ -21,6 +22,7 @@ export function App() {
         <Route path="/bookings" element={<MyBookingsPage />} />
         <Route path="/admin" element={<AdminDashboardPage />} />
         <Route path="/guard/scan" element={<GuardScanPage />} />
+        <Route path="/demand-prediction" element={<DemandPredictionPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
