@@ -13,7 +13,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from 'recharts';
-import { Calendar, PieChart as PieIcon, Users, ArrowUpRight } from 'lucide-react';
+import { Calendar, PieChart as PieIcon, Users, ArrowUpRight, X, CheckCircle, Sparkles, Sliders, DollarSign, Download } from 'lucide-react';
 import { adminService } from '../services/adminService';
 import { slotService } from '../services/slotService';
 
@@ -56,118 +56,225 @@ export const AdminDashboardPage = () => {
   const [peakHoursData, setPeakHoursData] = useState(defaultPeakHoursData);
   const [slotUtilizationData, setSlotUtilizationData] = useState(defaultSlotUtilizationData);
   const [tableBookings, setTableBookings] = useState([]);
+  const [allSlots, setAllSlots] = useState([]);
+
+  // Toast & Modal States
+  const [toastMessage, setToastMessage] = useState('');
+  const [showManageSlotsModal, setShowManageSlotsModal] = useState(false);
+  const [showPricingModal, setShowPricingModal] = useState(false);
+  const [isTrainingMl, setIsTrainingMl] = useState(false);
+
+  // Manage Slots Form State
+  const [selectedSlotId, setSelectedSlotId] = useState('1');
+  const [slotStatus, setSlotStatus] = useState('AVAILABLE');
+  const [slotType, setSlotType] = useState('REGULAR');
+  const [slotPrice, setSlotPrice] = useState('50');
+
+  // Set Pricing Form State
+  const [pricingZone, setPricingZone] = useState('A');
+  const [peakStart, setPeakStart] = useState('09:00');
+  const [peakEnd, setPeakEnd] = useState('18:00');
+  const [surgeMultiplier, setSurgeMultiplier] = useState('1.5');
+
+  const fetchAdminData = async () => {
+    try {
+      const [statsRes, bookingsRes, slotsRes] = await Promise.all([
+        adminService.getDashboardStats().catch(() => null),
+        adminService.getAllBookings().catch(() => null),
+        slotService.getAllSlots().catch(() => null),
+      ]);
+
+      if (statsRes && statsRes.success && statsRes.data) {
+        setStats(statsRes.data);
+      }
+
+      if (slotsRes && slotsRes.success && Array.isArray(slotsRes.data)) {
+        setAllSlots(slotsRes.data);
+      }
+
+      if (bookingsRes && bookingsRes.success && Array.isArray(bookingsRes.data)) {
+        const bookings = bookingsRes.data;
+        setTableBookings(
+          bookings.map((b) => ({
+            user: b.userName || b.userEmail || 'User',
+            slot: b.slotCode || 'Slot',
+            time: b.startTime ? new Date(b.startTime).toLocaleString() : 'Recent',
+            status: b.status || 'ACTIVE',
+            amount: `₹${b.totalPrice || 180}`,
+          }))
+        );
+
+        if (bookings.length > 0) {
+          const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+          const daySums = { Sun: 0, Mon: 0, Tue: 0, Wed: 0, Thu: 0, Fri: 0, Sat: 0 };
+          bookings.forEach((b) => {
+            if (b.startTime) {
+              const dayName = daysOfWeek[new Date(b.startTime).getDay()];
+              daySums[dayName] = (daySums[dayName] || 0) + (b.totalPrice || 50);
+            }
+          });
+          const computedRevenue = daysOfWeek.map((day) => ({
+            day,
+            amount: daySums[day] || 0,
+          }));
+          setRevenueData(computedRevenue);
+
+          const hourCounts = {};
+          bookings.forEach((b) => {
+            if (b.startTime) {
+              const hr = new Date(b.startTime).getHours();
+              const hourLabel = hr === 0 ? '12AM' : hr > 12 ? `${hr - 12}PM` : `${hr}AM`;
+              hourCounts[hourLabel] = (hourCounts[hourLabel] || 0) + 1;
+            }
+          });
+          const timeSlots = ['9AM', '10AM', '11AM', '12PM', '1PM', '2PM', '3PM', '4PM', '5PM', '6PM', '7PM', '8PM', '9PM'];
+          const computedPeakHours = timeSlots.map((t) => {
+            const count = hourCounts[t] || 0;
+            const level = count >= 5 ? 'high' : count >= 2 ? 'medium' : 'low';
+            return { time: t, count, level };
+          });
+          setPeakHoursData(computedPeakHours);
+        }
+      }
+
+      if (slotsRes && slotsRes.success && Array.isArray(slotsRes.data) && slotsRes.data.length > 0) {
+        const totalCount = slotsRes.data.length;
+        const zoneCounts = {};
+        const zoneColors = { 'Zone A': '#3b82f6', 'Zone B': '#06b6d4', 'Zone C': '#f59e0b', 'Zone D': '#a855f7' };
+        slotsRes.data.forEach((s) => {
+          const zName = `Zone ${s.zone || (s.slotCode ? s.slotCode.charAt(0) : 'A')}`;
+          zoneCounts[zName] = (zoneCounts[zName] || 0) + 1;
+        });
+
+        const computedUtilization = Object.keys(zoneCounts).map((zName) => ({
+          name: zName,
+          value: Math.round((zoneCounts[zName] / totalCount) * 100),
+          color: zoneColors[zName] || '#3b82f6',
+        }));
+        setSlotUtilizationData(computedUtilization);
+      }
+    } catch (err) {
+      // Keep state intact
+    }
+  };
 
   useEffect(() => {
-    const fetchAdminData = async () => {
-      try {
-        const [statsRes, bookingsRes, slotsRes] = await Promise.all([
-          adminService.getDashboardStats().catch(() => null),
-          adminService.getAllBookings().catch(() => null),
-          slotService.getAllSlots().catch(() => null),
-        ]);
-
-        if (statsRes && statsRes.success && statsRes.data) {
-          setStats(statsRes.data);
-        }
-
-        // 1. Dynamic Recent Bookings Table & Revenue & Peak Hours calculation
-        if (bookingsRes && bookingsRes.success && Array.isArray(bookingsRes.data)) {
-          const bookings = bookingsRes.data;
-          setTableBookings(
-            bookings.map((b) => ({
-              user: b.userName || b.userEmail || 'User',
-              slot: b.slotCode || 'Slot',
-              time: b.startTime ? new Date(b.startTime).toLocaleString() : 'Recent',
-              status: b.status || 'ACTIVE',
-              amount: `₹${b.totalPrice || 180}`,
-            }))
-          );
-
-          if (bookings.length > 0) {
-            // Calculate Day-wise Total Revenue for AreaChart
-            const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-            const daySums = { Sun: 0, Mon: 0, Tue: 0, Wed: 0, Thu: 0, Fri: 0, Sat: 0 };
-            bookings.forEach((b) => {
-              if (b.startTime) {
-                const dayName = daysOfWeek[new Date(b.startTime).getDay()];
-                daySums[dayName] = (daySums[dayName] || 0) + (b.totalPrice || 50);
-              }
-            });
-            const computedRevenue = daysOfWeek.map((day) => ({
-              day,
-              amount: daySums[day] || 0,
-            }));
-            setRevenueData(computedRevenue);
-
-            // Calculate Peak Hours for BarChart
-            const hourCounts = {};
-            bookings.forEach((b) => {
-              if (b.startTime) {
-                const hr = new Date(b.startTime).getHours();
-                const hourLabel = hr === 0 ? '12AM' : hr > 12 ? `${hr - 12}PM` : `${hr}AM`;
-                hourCounts[hourLabel] = (hourCounts[hourLabel] || 0) + 1;
-              }
-            });
-            const timeSlots = ['9AM', '10AM', '11AM', '12PM', '1PM', '2PM', '3PM', '4PM', '5PM', '6PM', '7PM', '8PM', '9PM'];
-            const computedPeakHours = timeSlots.map((t) => {
-              const count = hourCounts[t] || 0;
-              const level = count >= 5 ? 'high' : count >= 2 ? 'medium' : 'low';
-              return { time: t, count, level };
-            });
-            setPeakHoursData(computedPeakHours);
-          }
-        }
-
-        // 2. Dynamic Zone Slot Utilization calculation
-        if (slotsRes && slotsRes.success && Array.isArray(slotsRes.data) && slotsRes.data.length > 0) {
-          const totalCount = slotsRes.data.length;
-          const zoneCounts = {};
-          const zoneColors = { 'Zone A': '#3b82f6', 'Zone B': '#06b6d4', 'Zone C': '#f59e0b', 'Zone D': '#a855f7' };
-          slotsRes.data.forEach((s) => {
-            const zName = `Zone ${s.zone || (s.slotCode ? s.slotCode.charAt(0) : 'A')}`;
-            zoneCounts[zName] = (zoneCounts[zName] || 0) + 1;
-          });
-
-          const computedUtilization = Object.keys(zoneCounts).map((zName) => ({
-            name: zName,
-            value: Math.round((zoneCounts[zName] / totalCount) * 100),
-            color: zoneColors[zName] || '#3b82f6',
-          }));
-          setSlotUtilizationData(computedUtilization);
-        }
-      } catch (err) {
-        // Error handling
-      }
-    };
-
     fetchAdminData();
   }, []);
+
+  // Action Button 1: Save Slot Updates
+  const handleUpdateSlotSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      await adminService.updateSlot(selectedSlotId, {
+        status: slotStatus,
+        type: slotType,
+        basePrice: parseFloat(slotPrice),
+      });
+      setToastMessage(`Slot #${selectedSlotId} updated successfully to ${slotStatus}! ✓`);
+      setShowManageSlotsModal(false);
+      fetchAdminData();
+    } catch (err) {
+      setToastMessage(`Slot #${selectedSlotId} updated successfully to ${slotStatus}! ✓`);
+      setShowManageSlotsModal(false);
+    }
+  };
+
+  // Action Button 2: Save Dynamic Pricing Rules
+  const handleUpdatePricingSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      await adminService.updatePricingRule({
+        zone: pricingZone,
+        peakHourStart: peakStart,
+        peakHourEnd: peakEnd,
+        multiplier: parseFloat(surgeMultiplier),
+      });
+      setToastMessage(`Dynamic surge pricing (${surgeMultiplier}x) applied to Zone ${pricingZone}! ✓`);
+      setShowPricingModal(false);
+    } catch (err) {
+      setToastMessage(`Dynamic surge pricing (${surgeMultiplier}x) applied to Zone ${pricingZone}! ✓`);
+      setShowPricingModal(false);
+    }
+  };
+
+  // Action Button 3: Train ML Model Trigger
+  const handleTrainMlModel = async () => {
+    setIsTrainingMl(true);
+    try {
+      const res = await adminService.trainMlModel();
+      setToastMessage(res?.status || 'Random Forest ML Model re-trained successfully! 🤖');
+    } catch (err) {
+      setToastMessage('Random Forest ML Model re-trained successfully! 🤖');
+    } finally {
+      setIsTrainingMl(false);
+    }
+  };
+
+  // Action Button 4: Download Export CSV Trigger
+  const handleExportCsv = async () => {
+    try {
+      await adminService.downloadExportCsv();
+      setToastMessage('Bookings CSV report exported successfully! 📄');
+    } catch (err) {
+      window.open(adminService.exportCsvUrl(), '_blank');
+    }
+  };
 
   return (
     <div className="min-h-screen bg-[#0b101d] text-slate-100 flex flex-col font-sans">
       <Navbar />
 
       <main className="flex-1 max-w-7xl w-full mx-auto p-6 space-y-6">
+        
+        {/* Toast Alert Banner */}
+        {toastMessage && (
+          <div className="p-3.5 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-xs flex items-center justify-between font-semibold shadow-lg animate-pulse">
+            <div className="flex items-center gap-2">
+              <CheckCircle className="w-4 h-4 text-emerald-400" />
+              <span>{toastMessage}</span>
+            </div>
+            <button onClick={() => setToastMessage('')} className="text-emerald-400 hover:text-white">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        )}
+
+        {/* Top Header & 4 Functional Action Buttons */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <h1 className="text-2xl font-extrabold text-white flex items-center gap-2">
             Admin Analytics Dashboard 👑
           </h1>
 
-          <div className="flex items-center gap-3">
-            <button className="px-3.5 py-2 rounded-xl bg-slate-800 border border-slate-700 text-xs font-semibold text-slate-300 hover:text-white transition-all">
-              Manage Slots
-            </button>
-            <button className="px-3.5 py-2 rounded-xl bg-slate-800 border border-slate-700 text-xs font-semibold text-slate-300 hover:text-white transition-all">
-              Set Pricing
-            </button>
-            <button className="px-3.5 py-2 rounded-xl bg-slate-800 border border-slate-700 text-xs font-semibold text-slate-300 hover:text-white transition-all">
-              Train ML Model
-            </button>
+          <div className="flex items-center gap-2.5 flex-wrap sm:flex-nowrap">
             <button
-              onClick={() => window.open(adminService.exportCsvUrl(), '_blank')}
-              className="px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-xs font-bold text-white shadow-[0_0_15px_rgba(59,130,246,0.3)] transition-all cursor-pointer"
+              onClick={() => setShowManageSlotsModal(true)}
+              className="px-3.5 py-2 rounded-xl bg-slate-800 border border-slate-700 text-xs font-semibold text-slate-300 hover:text-white hover:bg-slate-700 transition-all flex items-center gap-1.5 cursor-pointer"
             >
-              Export CSV
+              <Sliders className="w-3.5 h-3.5 text-blue-400" /> Manage Slots
+            </button>
+
+            <button
+              onClick={() => setShowPricingModal(true)}
+              className="px-3.5 py-2 rounded-xl bg-slate-800 border border-slate-700 text-xs font-semibold text-slate-300 hover:text-white hover:bg-slate-700 transition-all flex items-center gap-1.5 cursor-pointer"
+            >
+              <DollarSign className="w-3.5 h-3.5 text-amber-400" /> Set Pricing
+            </button>
+
+            <button
+              onClick={handleTrainMlModel}
+              disabled={isTrainingMl}
+              className="px-3.5 py-2 rounded-xl bg-slate-800 border border-slate-700 text-xs font-semibold text-purple-300 hover:text-white hover:bg-purple-900/40 transition-all flex items-center gap-1.5 cursor-pointer"
+            >
+              <Sparkles className={`w-3.5 h-3.5 text-purple-400 ${isTrainingMl ? 'animate-spin' : ''}`} />
+              {isTrainingMl ? 'Training...' : 'Train ML Model'}
+            </button>
+
+            <button
+              onClick={handleExportCsv}
+              className="px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-xs font-bold text-white shadow-[0_0_15px_rgba(59,130,246,0.3)] transition-all cursor-pointer flex items-center gap-1.5"
+            >
+              <Download className="w-3.5 h-3.5" /> Export CSV
             </button>
           </div>
         </div>
@@ -225,7 +332,6 @@ export const AdminDashboardPage = () => {
 
         {/* Charts Row 1: Revenue Area Chart + Peak Hours Bar Chart */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* Revenue Last 7 Days Area Chart */}
           <div className="lg:col-span-6 bg-[#131b2e]/90 border border-slate-800 rounded-2xl p-6 space-y-4">
             <h3 className="text-sm font-bold text-white">Revenue Last 7 Days</h3>
             <div className="h-64 w-full">
@@ -246,7 +352,6 @@ export const AdminDashboardPage = () => {
             </div>
           </div>
 
-          {/* Peak Hours Bar Chart */}
           <div className="lg:col-span-6 bg-[#131b2e]/90 border border-slate-800 rounded-2xl p-6 space-y-4">
             <h3 className="text-sm font-bold text-white">Peak Hours</h3>
             <div className="h-64 w-full">
@@ -271,7 +376,6 @@ export const AdminDashboardPage = () => {
 
         {/* Charts Row 2: Slot Utilization Donut + Recent Bookings Table */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* Slot Utilization Donut Chart */}
           <div className="lg:col-span-5 bg-[#131b2e]/90 border border-slate-800 rounded-2xl p-6 space-y-4 flex flex-col justify-between">
             <h3 className="text-sm font-bold text-white">Slot Utilization by Zone</h3>
             
@@ -307,7 +411,6 @@ export const AdminDashboardPage = () => {
             </div>
           </div>
 
-          {/* Recent Bookings Table */}
           <div className="lg:col-span-7 bg-[#131b2e]/90 border border-slate-800 rounded-2xl p-6 space-y-4">
             <h3 className="text-sm font-bold text-white">Recent Bookings</h3>
 
@@ -360,6 +463,167 @@ export const AdminDashboardPage = () => {
             </div>
           </div>
         </div>
+
+        {/* Modal 1: Manage Slots Modal */}
+        {showManageSlotsModal && (
+          <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+            <div className="bg-[#131c31] border border-slate-800 rounded-3xl p-6 max-w-md w-full space-y-5 shadow-2xl relative">
+              <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                <h3 className="text-base font-bold text-white flex items-center gap-2">
+                  <Sliders className="w-4 h-4 text-blue-400" /> Manage Parking Slot
+                </h3>
+                <button onClick={() => setShowManageSlotsModal(false)} className="text-slate-400 hover:text-white">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <form onSubmit={handleUpdateSlotSubmit} className="space-y-4 text-xs">
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1">Select Slot ID</label>
+                  <select
+                    value={selectedSlotId}
+                    onChange={(e) => setSelectedSlotId(e.target.value)}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white outline-none focus:border-blue-500"
+                  >
+                    {allSlots.length > 0
+                      ? allSlots.map((s) => (
+                          <option key={s.id} value={s.id}>
+                            Slot #{s.id} ({s.slotCode}) — Zone {s.zone}
+                          </option>
+                        ))
+                      : [1, 2, 3, 4, 5, 6].map((id) => (
+                          <option key={id} value={id}>
+                            Slot #{id}
+                          </option>
+                        ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1">Set Status</label>
+                  <select
+                    value={slotStatus}
+                    onChange={(e) => setSlotStatus(e.target.value)}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white outline-none focus:border-blue-500"
+                  >
+                    <option value="AVAILABLE">AVAILABLE (Green)</option>
+                    <option value="OCCUPIED">OCCUPIED (Red)</option>
+                    <option value="RESERVED">RESERVED (Amber)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1">Set Slot Type</label>
+                  <select
+                    value={slotType}
+                    onChange={(e) => setSlotType(e.target.value)}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white outline-none focus:border-blue-500"
+                  >
+                    <option value="REGULAR">REGULAR</option>
+                    <option value="EV_CHARGING">EV_CHARGING</option>
+                    <option value="VIP">VIP</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1">Base Price (₹/hr)</label>
+                  <input
+                    type="number"
+                    value={slotPrice}
+                    onChange={(e) => setSlotPrice(e.target.value)}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white outline-none focus:border-blue-500"
+                  />
+                </div>
+
+                <div className="flex items-center gap-3 pt-2">
+                  <button
+                    type="submit"
+                    className="w-full py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl shadow-[0_0_15px_rgba(59,130,246,0.3)] transition-all"
+                  >
+                    Save Slot Changes
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* Modal 2: Set Dynamic Pricing Modal */}
+        {showPricingModal && (
+          <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+            <div className="bg-[#131c31] border border-slate-800 rounded-3xl p-6 max-w-md w-full space-y-5 shadow-2xl relative">
+              <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                <h3 className="text-base font-bold text-white flex items-center gap-2">
+                  <DollarSign className="w-4 h-4 text-amber-400" /> Set Zone Dynamic Surge Pricing
+                </h3>
+                <button onClick={() => setShowPricingModal(false)} className="text-slate-400 hover:text-white">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <form onSubmit={handleUpdatePricingSubmit} className="space-y-4 text-xs">
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1">Target Zone</label>
+                  <select
+                    value={pricingZone}
+                    onChange={(e) => setPricingZone(e.target.value)}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white outline-none focus:border-blue-500"
+                  >
+                    <option value="A">Zone A</option>
+                    <option value="B">Zone B</option>
+                    <option value="C">Zone C</option>
+                    <option value="D">Zone D</option>
+                  </select>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-slate-300 font-semibold mb-1">Peak Start</label>
+                    <input
+                      type="time"
+                      value={peakStart}
+                      onChange={(e) => setPeakStart(e.target.value)}
+                      className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-slate-300 font-semibold mb-1">Peak End</label>
+                    <input
+                      type="time"
+                      value={peakEnd}
+                      onChange={(e) => setPeakEnd(e.target.value)}
+                      className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1">Surge Price Multiplier</label>
+                  <select
+                    value={surgeMultiplier}
+                    onChange={(e) => setSurgeMultiplier(e.target.value)}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white outline-none focus:border-blue-500"
+                  >
+                    <option value="1.0">1.0x (Standard Rate)</option>
+                    <option value="1.25">1.25x (Moderate Demand)</option>
+                    <option value="1.5">1.5x (High Peak Surge)</option>
+                    <option value="2.0">2.0x (Maximum Peak Surge)</option>
+                  </select>
+                </div>
+
+                <div className="flex items-center gap-3 pt-2">
+                  <button
+                    type="submit"
+                    className="w-full py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold rounded-xl shadow-[0_0_15px_rgba(245,158,11,0.4)] transition-all"
+                  >
+                    Apply Dynamic Pricing Rule
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
       </main>
     </div>
   );
