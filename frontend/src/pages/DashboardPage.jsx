@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Navbar } from '../components/Navbar';
 import { BookingModal } from '../components/BookingModal';
+import { AiDemandPrediction } from '../components/AiDemandPrediction';
 import { Car, Bike, AlertCircle, RefreshCw } from 'lucide-react';
 import { slotService } from '../services/slotService';
 import { authService } from '../services/authService';
@@ -258,6 +259,18 @@ export const DashboardPage = () => {
               })}
             </div>
           )}
+        </section>
+
+        {/* AI Best Time Demand Prediction Widget */}
+        <section className="lg:col-span-12">
+          <AiDemandPrediction
+            onSelectBestTime={() => {
+              const firstAvailable = slots.find((s) => (s.status || '').toUpperCase() === 'AVAILABLE');
+              if (firstAvailable) {
+                handleSlotClick(firstAvailable);
+              }
+            }}
+          />
         </section>
       </main>
 

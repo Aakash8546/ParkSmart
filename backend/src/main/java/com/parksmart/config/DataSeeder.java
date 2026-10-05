@@ -8,6 +8,8 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
+
 @Component
 public class DataSeeder implements CommandLineRunner {
 
@@ -50,6 +52,16 @@ public class DataSeeder implements CommandLineRunner {
             vehicleRepository.save(Vehicle.builder().user(aakash).plateNumber("MH 12 AB 1234").vehicleType(VehicleType.CAR).modelName("Honda City").build());
 
             System.out.println("24 slots seeded as AVAILABLE.");
+        } else {
+            // Clean up any old persistent demo bookings on cloud database
+            List<ParkingSlot> allSlots = slotRepository.findAll();
+            boolean hasNonAvailable = allSlots.stream().anyMatch(s -> s.getStatus() != SlotStatus.AVAILABLE);
+            if (hasNonAvailable) {
+                allSlots.forEach(s -> s.setStatus(SlotStatus.AVAILABLE));
+                slotRepository.saveAll(allSlots);
+                bookingRepository.deleteAll();
+                System.out.println("Cleaned persistent cloud database: all slots reset to AVAILABLE.");
+            }
         }
     }
 }
