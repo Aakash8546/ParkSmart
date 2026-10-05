@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Navbar } from '../components/Navbar';
 import {
   AreaChart,
@@ -13,77 +13,130 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from 'recharts';
-import { DollarSign, Calendar, PieChart as PieIcon, Users, ArrowUpRight, CheckCircle2, Clock } from 'lucide-react';
-
-const revenueData = [
-  { day: 'Sun', amount: 2100 },
-  { day: 'Mon', amount: 6000 },
-  { day: 'Tue', amount: 5000 },
-  { day: 'Wed', amount: 3500 },
-  { day: 'Thu', amount: 10000 },
-  { day: 'Fri', amount: 15000 },
-  { day: 'Sat', amount: 13500 },
-];
-
-const peakHoursData = [
-  { time: '9AM', count: 150, level: 'high' },
-  { time: '10AM', count: 200, level: 'high' },
-  { time: '11AM', count: 130, level: 'high' },
-  { time: '12AM', count: 80, level: 'low' },
-  { time: '1PM', count: 60, level: 'low' },
-  { time: '2PM', count: 65, level: 'low' },
-  { time: '3PM', count: 75, level: 'medium' },
-  { time: '4PM', count: 115, level: 'medium' },
-  { time: '5PM', count: 170, level: 'high' },
-  { time: '6PM', count: 120, level: 'medium' },
-  { time: '7PM', count: 85, level: 'low' },
-  { time: '8PM', count: 65, level: 'low' },
-  { time: '9PM', count: 50, level: 'low' },
-];
-
-const slotUtilizationData = [
-  { name: 'Zone A', value: 35, color: '#3b82f6' },
-  { name: 'Zone B', value: 25, color: '#06b6d4' },
-  { name: 'Zone C', value: 22, color: '#f59e0b' },
-  { name: 'Zone D', value: 18, color: '#a855f7' },
-];
-
-const recentBookings = [
-  { user: 'Joan Emut', slot: 'Slot1', time: '23-06-23, 10:05:40', status: 'Active', amount: '₹45,200' },
-  { user: 'Yamamahsen', slot: 'Slot2', time: '23-06-23, 10:05:46', status: 'Completed', amount: '₹20,000' },
-  { user: 'Kuma Kare', slot: 'Slot3', time: '23-06-23, 10:05:30', status: 'Completed', amount: '₹35,000' },
-  { user: 'Joan Smith', slot: 'Slot4', time: '23-06-23, 12:35:40', status: 'Active', amount: '₹45,200' },
-  { user: 'Marty Rhath', slot: 'Slot5', time: '23-06-23, 10:03:11', status: 'Cancelled', amount: '₹75,000' },
-];
-
+import { Calendar, PieChart as PieIcon, Users, ArrowUpRight } from 'lucide-react';
 import { adminService } from '../services/adminService';
+import { slotService } from '../services/slotService';
+
+const defaultRevenueData = [
+  { day: 'Sun', amount: 0 },
+  { day: 'Mon', amount: 0 },
+  { day: 'Tue', amount: 0 },
+  { day: 'Wed', amount: 0 },
+  { day: 'Thu', amount: 0 },
+  { day: 'Fri', amount: 0 },
+  { day: 'Sat', amount: 0 },
+];
+
+const defaultPeakHoursData = [
+  { time: '9AM', count: 0, level: 'low' },
+  { time: '10AM', count: 0, level: 'low' },
+  { time: '11AM', count: 0, level: 'low' },
+  { time: '12PM', count: 0, level: 'low' },
+  { time: '1PM', count: 0, level: 'low' },
+  { time: '2PM', count: 0, level: 'low' },
+  { time: '3PM', count: 0, level: 'low' },
+  { time: '4PM', count: 0, level: 'low' },
+  { time: '5PM', count: 0, level: 'low' },
+  { time: '6PM', count: 0, level: 'low' },
+  { time: '7PM', count: 0, level: 'low' },
+  { time: '8PM', count: 0, level: 'low' },
+  { time: '9PM', count: 0, level: 'low' },
+];
+
+const defaultSlotUtilizationData = [
+  { name: 'Zone A', value: 25, color: '#3b82f6' },
+  { name: 'Zone B', value: 25, color: '#06b6d4' },
+  { name: 'Zone C', value: 25, color: '#f59e0b' },
+  { name: 'Zone D', value: 25, color: '#a855f7' },
+];
 
 export const AdminDashboardPage = () => {
   const [stats, setStats] = useState(null);
-  const [tableBookings, setTableBookings] = useState(recentBookings);
+  const [revenueData, setRevenueData] = useState(defaultRevenueData);
+  const [peakHoursData, setPeakHoursData] = useState(defaultPeakHoursData);
+  const [slotUtilizationData, setSlotUtilizationData] = useState(defaultSlotUtilizationData);
+  const [tableBookings, setTableBookings] = useState([]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     const fetchAdminData = async () => {
       try {
-        const statsRes = await adminService.getDashboardStats();
+        const [statsRes, bookingsRes, slotsRes] = await Promise.all([
+          adminService.getDashboardStats().catch(() => null),
+          adminService.getAllBookings().catch(() => null),
+          slotService.getAllSlots().catch(() => null),
+        ]);
+
         if (statsRes && statsRes.success && statsRes.data) {
           setStats(statsRes.data);
         }
 
-        const bookingsRes = await adminService.getAllBookings();
-        if (bookingsRes && bookingsRes.success && Array.isArray(bookingsRes.data) && bookingsRes.data.length > 0) {
+        // 1. Dynamic Recent Bookings Table & Revenue & Peak Hours calculation
+        if (bookingsRes && bookingsRes.success && Array.isArray(bookingsRes.data)) {
+          const bookings = bookingsRes.data;
           setTableBookings(
-            bookingsRes.data.map((b) => ({
+            bookings.map((b) => ({
               user: b.userName || b.userEmail || 'User',
               slot: b.slotCode || 'Slot',
               time: b.startTime ? new Date(b.startTime).toLocaleString() : 'Recent',
-              status: b.status || 'Active',
+              status: b.status || 'ACTIVE',
               amount: `₹${b.totalPrice || 180}`,
             }))
           );
+
+          if (bookings.length > 0) {
+            // Calculate Day-wise Total Revenue for AreaChart
+            const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+            const daySums = { Sun: 0, Mon: 0, Tue: 0, Wed: 0, Thu: 0, Fri: 0, Sat: 0 };
+            bookings.forEach((b) => {
+              if (b.startTime) {
+                const dayName = daysOfWeek[new Date(b.startTime).getDay()];
+                daySums[dayName] = (daySums[dayName] || 0) + (b.totalPrice || 50);
+              }
+            });
+            const computedRevenue = daysOfWeek.map((day) => ({
+              day,
+              amount: daySums[day] || 0,
+            }));
+            setRevenueData(computedRevenue);
+
+            // Calculate Peak Hours for BarChart
+            const hourCounts = {};
+            bookings.forEach((b) => {
+              if (b.startTime) {
+                const hr = new Date(b.startTime).getHours();
+                const hourLabel = hr === 0 ? '12AM' : hr > 12 ? `${hr - 12}PM` : `${hr}AM`;
+                hourCounts[hourLabel] = (hourCounts[hourLabel] || 0) + 1;
+              }
+            });
+            const timeSlots = ['9AM', '10AM', '11AM', '12PM', '1PM', '2PM', '3PM', '4PM', '5PM', '6PM', '7PM', '8PM', '9PM'];
+            const computedPeakHours = timeSlots.map((t) => {
+              const count = hourCounts[t] || 0;
+              const level = count >= 5 ? 'high' : count >= 2 ? 'medium' : 'low';
+              return { time: t, count, level };
+            });
+            setPeakHoursData(computedPeakHours);
+          }
+        }
+
+        // 2. Dynamic Zone Slot Utilization calculation
+        if (slotsRes && slotsRes.success && Array.isArray(slotsRes.data) && slotsRes.data.length > 0) {
+          const totalCount = slotsRes.data.length;
+          const zoneCounts = {};
+          const zoneColors = { 'Zone A': '#3b82f6', 'Zone B': '#06b6d4', 'Zone C': '#f59e0b', 'Zone D': '#a855f7' };
+          slotsRes.data.forEach((s) => {
+            const zName = `Zone ${s.zone || (s.slotCode ? s.slotCode.charAt(0) : 'A')}`;
+            zoneCounts[zName] = (zoneCounts[zName] || 0) + 1;
+          });
+
+          const computedUtilization = Object.keys(zoneCounts).map((zName) => ({
+            name: zName,
+            value: Math.round((zoneCounts[zName] / totalCount) * 100),
+            color: zoneColors[zName] || '#3b82f6',
+          }));
+          setSlotUtilizationData(computedUtilization);
         }
       } catch (err) {
-        // Fallback UI matching design document screenshot stays intact
+        // Error handling
       }
     };
 
@@ -121,7 +174,6 @@ export const AdminDashboardPage = () => {
 
         {/* 4 Stat Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          
           <div className="bg-[#131b2e]/90 border border-slate-800 rounded-2xl p-5 flex items-center justify-between">
             <div>
               <p className="text-xs font-semibold text-slate-400">Total Revenue</p>
@@ -169,12 +221,10 @@ export const AdminDashboardPage = () => {
               <Users className="w-5 h-5" />
             </div>
           </div>
-
         </div>
 
         {/* Charts Row 1: Revenue Area Chart + Peak Hours Bar Chart */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          
           {/* Revenue Last 7 Days Area Chart */}
           <div className="lg:col-span-6 bg-[#131b2e]/90 border border-slate-800 rounded-2xl p-6 space-y-4">
             <h3 className="text-sm font-bold text-white">Revenue Last 7 Days</h3>
@@ -217,12 +267,10 @@ export const AdminDashboardPage = () => {
               </ResponsiveContainer>
             </div>
           </div>
-
         </div>
 
         {/* Charts Row 2: Slot Utilization Donut + Recent Bookings Table */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          
           {/* Slot Utilization Donut Chart */}
           <div className="lg:col-span-5 bg-[#131b2e]/90 border border-slate-800 rounded-2xl p-6 space-y-4 flex flex-col justify-between">
             <h3 className="text-sm font-bold text-white">Slot Utilization by Zone</h3>
@@ -264,48 +312,53 @@ export const AdminDashboardPage = () => {
             <h3 className="text-sm font-bold text-white">Recent Bookings</h3>
 
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
-                <thead>
-                  <tr className="border-b border-slate-800 text-slate-400">
-                    <th className="pb-3 font-semibold">User</th>
-                    <th className="pb-3 font-semibold">Slot</th>
-                    <th className="pb-3 font-semibold">Time</th>
-                    <th className="pb-3 font-semibold">Status</th>
-                    <th className="pb-3 font-semibold text-right">Amount</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-800/60">
-                  {tableBookings.map((b, idx) => (
-                    <tr key={idx} className="hover:bg-slate-800/30 transition-colors">
-                      <td className="py-3 font-semibold text-white flex items-center gap-2">
-                        <div className="w-6 h-6 rounded-full bg-slate-700 flex items-center justify-center text-[10px]">
-                          {(b.user || 'U').charAt(0)}
-                        </div>
-                        {b.user}
-                      </td>
-                      <td className="py-3 text-slate-300 font-mono">{b.slot}</td>
-                      <td className="py-3 text-slate-400">{b.time}</td>
-                      <td className="py-3">
-                        <span
-                          className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                            b.status === 'Active'
-                              ? 'bg-emerald-500/20 text-emerald-400'
-                              : b.status === 'Completed'
-                              ? 'bg-blue-500/20 text-blue-400'
-                              : 'bg-rose-500/20 text-rose-400'
-                          }`}
-                        >
-                          {b.status}
-                        </span>
-                      </td>
-                      <td className="py-3 font-mono font-bold text-right text-slate-200">{b.amount}</td>
+              {tableBookings.length === 0 ? (
+                <div className="py-12 text-center text-slate-500 text-xs">
+                  No bookings found in database yet.
+                </div>
+              ) : (
+                <table className="w-full text-left text-xs">
+                  <thead>
+                    <tr className="border-b border-slate-800 text-slate-400">
+                      <th className="pb-3 font-semibold">User</th>
+                      <th className="pb-3 font-semibold">Slot</th>
+                      <th className="pb-3 font-semibold">Time</th>
+                      <th className="pb-3 font-semibold">Status</th>
+                      <th className="pb-3 font-semibold text-right">Amount</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800/60">
+                    {tableBookings.map((b, idx) => (
+                      <tr key={idx} className="hover:bg-slate-800/30 transition-colors">
+                        <td className="py-3 font-semibold text-white flex items-center gap-2">
+                          <div className="w-6 h-6 rounded-full bg-slate-700 flex items-center justify-center text-[10px]">
+                            {(b.user || 'U').charAt(0)}
+                          </div>
+                          {b.user}
+                        </td>
+                        <td className="py-3 text-slate-300 font-mono">{b.slot}</td>
+                        <td className="py-3 text-slate-400">{b.time}</td>
+                        <td className="py-3">
+                          <span
+                            className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                              b.status === 'Active' || b.status === 'ACTIVE'
+                                ? 'bg-emerald-500/20 text-emerald-400'
+                                : b.status === 'Completed' || b.status === 'COMPLETED'
+                                ? 'bg-blue-500/20 text-blue-400'
+                                : 'bg-rose-500/20 text-rose-400'
+                            }`}
+                          >
+                            {b.status}
+                          </span>
+                        </td>
+                        <td className="py-3 font-mono font-bold text-right text-slate-200">{b.amount}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
             </div>
           </div>
-
         </div>
       </main>
     </div>
