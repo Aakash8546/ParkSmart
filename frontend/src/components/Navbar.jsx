@@ -6,7 +6,7 @@ import { authService } from '../services/authService';
 export const Navbar = ({ onSearchChange, showSearch = false }) => {
   const location = useLocation();
   const isDashboard = location.pathname.includes('/dashboard');
-  const user = authService.getCurrentUser();
+  const user = authService.getProfile();
 
   return (
     <nav className="sticky top-0 z-40 bg-[#0f172a]/90 backdrop-blur-md border-b border-slate-800/80 px-6 py-3.5 flex items-center justify-between text-xs">
